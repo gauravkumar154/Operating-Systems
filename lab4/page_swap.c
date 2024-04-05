@@ -53,20 +53,20 @@ map_address(pde_t *pgdir, uint addr)
 {
 	struct proc *curproc = myproc();
   pte_t *pte=walkpgdir(pgdir, (char*)addr, 0); // physical address of the page table entry 
+  uint flag = PTE_FLAGS(*pte);
 	uint cursz= curproc->sz;
-	uint a= PGROUNDDOWN(rcr2());			//rounds the address to a multiple of page size (PGSIZE)
-  uint block = getswappedblk(pgdir,a);
+  uint block = getswappedblk(pgdir,addr);
 	char *mem=kalloc() ;    //allocate a physical page // this is the virutal address of the memory that is allocated 
   read_page_from_disk(ROOTDEV, mem, block); // mem 
-  *pte=V2P(mem) | PTE_W | PTE_U | PTE_P; // the flags need to be rethink
+  *pte=V2P(mem) | flag | PTE_P ; // the flags need to be rethink
   lcr3(V2P(pgdir));
-  bfree_page(ROOTDEV,block);
 }
 void
 handle_pgfault()
 {
 	struct proc *curproc = myproc();
-	uint a = PGROUNDDOWN(rcr2());
+
+	uint a= PGROUNDDOWN(rcr2());
 	map_address(curproc->pgdir, a);
 }
 

@@ -159,6 +159,7 @@ userinit(void)
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
+  p->rss =1 ;
   p->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
@@ -194,9 +195,11 @@ growproc(int n)
   sz = curproc->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+      curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+      curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
   }
   curproc->sz = sz;
@@ -229,7 +232,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-
+  np->rss = curproc->rss ;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 

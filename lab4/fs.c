@@ -106,49 +106,6 @@ bfree(int dev, uint b)
 }
 
 
-
-// cannot use the traditional
-// uint
-// balloc_page(uint dev)
-// {
-//   uint allocatedBlocks[100000];
-//   int indexNCB=-1;     //pointer for above array, keeps track till where it is filled
-//   // bp = 0;
-//   for(int i=0;i<8;i++){
-//       indexNCB++;
-//       //begin_op();
-//       allocatedBlocks[indexNCB] = balloc(dev);
-//       //end_op();
-
-//       if(i>0){
-//           if((allocatedBlocks[indexNCB]-allocatedBlocks[indexNCB-1])!=1)  //this allocated block in non consecutive
-//           {
-//               i=0;    //start allocating blocks again
-//           }
-//       }
-//     }
-//     for(int i=0;i<=indexNCB-8;i++){
-//       bfree(ROOTDEV,allocatedBlocks[i]);    //free unnecesarily allocated blocks
-//     }
-//     numallocblocks+=1;      //*****************
-
-// 	  return allocatedBlocks[indexNCB-7];  //return last 8 blocks (address of 1st block among them)
-// }
-
-// /* Free disk blocks allocated using balloc_page.
-//  */
-// void
-// bfree_page(int dev, uint b)
-// { //*******************xv7*****************
-//   // cprintf("In Bfree Page\n");
-//   for(uint i=0;i<8;i++){
-//     bfree(ROOTDEV,b+i);
-//   }
-//   numallocblocks-=1;      //*****************
-
-// }
-
-
 // Inodes.
 //
 // An inode describes a single unnamed file.

@@ -233,8 +233,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
-    mem = kalloc();
+    mem = kalloc(); // we get the virtual address of the newly allocated page on the physical memory , thus for the process that is currently running we need to update the rss value for the process 
     if(mem == 0){
+      // if not able to find the free physical memory , then something might have been swapped out and still we need to increaes the rss 
       cprintf("allocuvm out of memory\n");
       deallocuvm(pgdir, newsz, oldsz);
       return 0;
@@ -396,8 +397,10 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // if we didn't find any page that satisfies the condition then return NULL
 
 pte_t*
-find_victim_page(pde_t *pgdir, struct proc* p)
+find_victim_page(pde_t *pgdir, struct proc* p)   // I am getting the virtual address of the pgdir , and the process p 
 {
+
+
   int count_pte_present ;
   for (int i = 0; i < NPDENTRIES; ++i)
   {
