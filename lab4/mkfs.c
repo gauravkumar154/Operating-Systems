@@ -94,13 +94,23 @@ main(int argc, char *argv[])
   nmeta = 2 + nlog + ninodeblocks + nbitmap;
   nblocks = FSSIZE - nmeta;
 
-  sb.size = xint(FSSIZE);
-  sb.nblocks = xint(nblocks);
-  sb.ninodes = xint(NINODES);
-  sb.nlog = xint(nlog);
-  sb.logstart = xint(2);
-  sb.inodestart = xint(2+nlog);
-  sb.bmapstart = xint(2+nlog+ninodeblocks);
+  // sb.size = xint(FSSIZE);
+  // sb.nblocks = xint(nblocks);
+  // sb.ninodes = xint(NINODES);
+  // sb.nlog = xint(nlog);
+  // sb.logstart = xint(2);
+  // sb.inodestart = xint(2+nlog);
+  // sb.bmapstart = xint(2+nlog+ninodeblocks);
+
+  sb.swapstart = xint(2);
+  sb.swapsize = xint(68);
+  sb.size = xint(1000);
+  sb.nblocks = xint(873);
+  sb.ninodes = xint(200);
+  sb.nlog = xint(30);
+  sb.logstart = xint(70);
+  sb.inodestart = xint(100);
+  sb.bmapstart = xint(126);
 
   printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
          nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);

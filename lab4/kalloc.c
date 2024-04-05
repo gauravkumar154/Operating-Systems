@@ -101,6 +101,11 @@ kalloc(void)
     
   if(kmem.use_lock)
     release(&kmem.lock);
+
+  // if the allocator is not able to find then swap out is called 
+  if((char*)r == 0){
+    swap_out();
+  }
   return (char*)r;
 }
 uint 

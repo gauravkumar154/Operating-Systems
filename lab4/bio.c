@@ -64,7 +64,7 @@ bget(uint dev, uint blockno)
   struct buf *b;
 
   acquire(&bcache.lock);
-
+  cprintf("before the for loop in the bget ") ;
   // Is the block already cached?
   for(b = bcache.head.next; b != &bcache.head; b = b->next){
     if(b->dev == dev && b->blockno == blockno){
@@ -73,7 +73,7 @@ bget(uint dev, uint blockno)
       acquiresleep(&b->lock);
       return b;
     }
-  }
+  }cprintf("ohh no we need to return a empty block now ");
 
   // Not cached; recycle an unused buffer.
   // Even if refcnt==0, B_DIRTY indicates a buffer is in use
@@ -97,9 +97,11 @@ struct buf*
 bread(uint dev, uint blockno)
 {
   struct buf *b;
-
+  cprintf("here in the bread before the bget");
   b = bget(dev, blockno);
+  
   if((b->flags & B_VALID) == 0) {
+    cprintf("???");
     iderw(b);
   }
   return b;
@@ -138,6 +140,49 @@ brelse(struct buf *b)
   }
   
   release(&bcache.lock);
+}
+/* Write 4096 bytes pg to the eight consecutive
+ * starting at blk.
+ */
+void
+write_page_to_disk(uint dev, char *pg, uint blk)
+{
+  struct buf* buffer;
+  int blockno=0;
+  int ithPartOfPage=0;    //which part of page (out of 8) is to be written to disk
+  for(int i=0;i<8;i++){
+    // begin_op();           //for atomicity , the block must be written to the disk
+    ithPartOfPage=i*512;
+    blockno=blk+i;
+    buffer=bget(ROOTDEV,blockno);
+    /*
+    Writing physical page to disk by dividing it into 8 pieces (4096 bytes/8 = 512 bytes = 1 block)
+    As one page requires 8 disk blocks
+    */
+    memmove(buffer->data,pg+ithPartOfPage,512);   // write 512 bytes to the block
+    bwrite(buffer);
+    brelse(buffer);                               //release lock
+    // end_op();
+  }
+}
+
+/* Read 4096 bytes from the eight consecutive
+ * starting at blk into pg.
+ */
+void
+read_page_from_disk(uint dev, char *pg, uint blk)
+{
+  struct buf* buffer;
+  int blockno=0;
+  int ithPartOfPage=0;
+  for(int i=0;i<8;i++){
+    ithPartOfPage=i*512;
+    blockno=blk+i;
+    buffer=bread(ROOTDEV,blockno);    //if present in buffer, returns from buffer else from disk
+    memmove(pg+ithPartOfPage, buffer->data,512);  //write to pg from buffer
+    brelse(buffer);                   //release lock
+  }
+
 }
 //PAGEBREAK!
 // Blank page.

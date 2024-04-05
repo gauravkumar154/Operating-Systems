@@ -15,6 +15,8 @@ void            binit(void);
 struct buf*     bread(uint, uint);
 void            brelse(struct buf*);
 void            bwrite(struct buf*);
+void write_page_to_disk(uint dev ,char *pg , uint blk);
+void read_page_from_disk(uint dev, char *pg , uint blk ) ;
 
 // console.c
 void            consoleinit(void);
@@ -111,6 +113,7 @@ int             growproc(int);
 int             kill(int);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
+struct proc*    find_victim(void);
 void            pinit(void);
 void            procdump(void);
 void            scheduler(void) __attribute__((noreturn));
@@ -187,6 +190,14 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+struct pte*          find_victim_page(pde_t *pgdir, struct proc* p);
+int            getswappedblk(pde_t *pgdir, uint va) ;
+
+
+
+//page_swap.c
+void            swap_out() ;
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

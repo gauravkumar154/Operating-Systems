@@ -47,6 +47,7 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
+  
   case T_IRQ0 + IRQ_TIMER:
     if(cpuid() == 0){
       acquire(&tickslock);
@@ -60,6 +61,7 @@ trap(struct trapframe *tf)
     ideintr();
     lapiceoi();
     break;
+  
   case T_IRQ0 + IRQ_IDE+1:
     // Bochs generates spurious IDE1 interrupts.
     break;
@@ -67,6 +69,10 @@ trap(struct trapframe *tf)
     kbdintr();
     lapiceoi();
     break;
+  case T_PGFLT :
+    handle_pgfault();
+    lapiceoi();
+    break ;
   case T_IRQ0 + IRQ_COM1:
     uartintr();
     lapiceoi();

@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "random": "c",
+        "proc.h": "c",
+        "mmu.h": "c",
+        "x86.h": "c",
+        "memlayout.h": "c",
+        "param.h": "c",
+        "defs.h": "c",
+        "types.h": "c",
+        "spinlock.h": "c",
+        "mutex": "c",
+        "semaphore": "c",
+        "stop_token": "c",
+        "locale": "c",
+        "string": "c",
+        "elf.h": "c",
+        "fs.h": "c",
+        "traps.h": "c"
+    }
+}

@@ -6,7 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+// Prior discussing the swapping-in and swapping-out procedures, we first define a policy to find a process and its page for swapping (referred as victim process and victim page). To find a victim process, we first choose a process whose majority of pages are residing in memory. For this, we augment the current struct proc with another attribute rss, which denotes the amount of memory pages residing on the memory. In case two processes have the same rss value, choose the one with the lower pid. Upon completion of the process, clean the unused swap slots.
 
+// To find a victim page, we iterate through the pages of a victim process and choose a page with the PTE_P flag set and the PTE_A flag unset. The PTE_P flag indicates whether the page is present in the memory, and the PTE_A flag indicates whether the page is accessed by the process, which is set by the xv6 paging hardware (refer Ch-2 of the xv6 book).
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -63,6 +65,31 @@ myproc(void) {
   p = c->proc;
   popcli();
   return p;
+}
+
+//write the code , for finding the victim process to swap out 
+  // for(int i=0;i<NPROC;i++){
+  //       if(ptable.proc[i].state==RUNNABLE || proc[i].state==RUNNING){
+  //           if(proc[i].rss<minRss){
+  //               minRss=proc[i].rss;
+  //               victimProc=&proc[i];
+  //           }
+  //       }
+  //   }
+struct proc*
+find_victim(void)
+{
+  struct proc *victim;
+  int min = -1;
+  
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == RUNNABLE)
+      if(min == -1 || min > p->rss){
+        min = p->rss;
+        victim = &p;
+      }
+  
+  return victim; 
 }
 
 //PAGEBREAK: 32

@@ -6,6 +6,8 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "fs.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -383,6 +385,75 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
+}
+
+
+//write the code for finding the victim page using the algorithm ,  we iterate through the pages of a victim process and choose a page with the PTE_P flag set and the PTE_A flag unset. The PTE_P flag indicates whether the page is present in the memory, and the PTE_A flag indicates whether the page is accessed by the process, which is set by the xv6 paging hardware (refer Ch-2 of the xv6 book).
+//pte* is the page that we want to return 
+// we need to iterate on the pgdir , and for each of the pde* we need to iterate on the pte* 
+// we need to check if the PTE_P flag is set and the PTE_A flag is unset 
+// if it's true then return this pte* 
+// if we didn't find any page that satisfies the condition then return NULL
+
+pte_t*
+find_victim_page(pde_t *pgdir, struct proc* p)
+{
+  int count_pte_present ;
+  for (int i = 0; i < NPDENTRIES; ++i)
+  {
+    if (1)
+    {
+      pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+      for (int j = 0; j < NPTENTRIES; ++j)
+      {
+        if (pt[j] & PTE_P && !(pt[j] & PTE_A))
+        {
+          return &pt[j];
+        }else if (pt[j]& PTE_P){
+          count_pte_present++;
+        }
+      }
+    }
+  }
+
+  // if we dont find any pte* , If we fail to find such a page, then we convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag. After the update, we again try to find a victim page.
+  // convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag 
+  // 10 percent of the count_pte_present  , first 10 percent do the modification 
+  int count = (int)count_pte_present/10;
+  
+  for (int i = 0; i < NPDENTRIES; ++i)
+  {
+    if (1)
+    {
+      pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+      for (int j = 0; j < NPTENTRIES; ++j)
+      {
+        if (pt[j] & PTE_P && pt[j] & PTE_A)
+        {
+          pt[j] &= ~PTE_A;
+          count--;
+        }
+        if (count == 0)
+        {
+          break;
+        }
+      }
+    }
+  }
+  pte_t *pte = find_victim_page(pgdir,p);
+  // suppose we find the victim page , we need to swap it out 
+  // how 
+
+  return pte ;
+}
+int
+getswappedblk(pde_t *pgdir, uint va)
+{
+  //***************xv7**************
+  pte_t *pte= walkpgdir(pgdir,(char*)va,0); // physical address of the virtual address
+  //first 20 bits contain block-id, extract them from *pte
+  int block_id= (*pte)>>12;   // the 20 value is the physical page number that stores the block id 
+  return block_id;
 }
 
 //PAGEBREAK!
