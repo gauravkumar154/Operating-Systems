@@ -39,9 +39,9 @@ void swap_out(){
     if(victimproc==0){
         panic("No victim process found");
     }
-    struct pde* pgdir = victimproc->pgdir ;  
-    
-    struct pte* victimpage = find_victim_page(pgdir,victimproc) ;
+    pde_t* pgdir = victimproc->pgdir ;  
+  
+    pte_t* victimpage = find_victim_page(pgdir,victimproc) ;
     if(victimpage==0){
         panic("No victim page found");
     }
@@ -63,14 +63,13 @@ map_address(pde_t *pgdir, uint addr)
 {
 	struct proc *curproc = myproc();
   pte_t *pte=walkpgdir(pgdir, (char*)addr, 0); // physical address of the page table entry 
+  uint flag = PTE_FLAGS(*pte);
 	uint cursz= curproc->sz;
-	uint a= PGROUNDDOWN(rcr2());			//rounds the address to a multiple of page size (PGSIZE)
-  uint block = getswappedblk(pgdir,a);
+  uint block = getswappedblk(pgdir,addr);
 	char *mem=kalloc() ;    //allocate a physical page // this is the virutal address of the memory that is allocated 
   read_page_from_disk(ROOTDEV, mem, block); // mem 
-  *pte=V2P(mem) | PTE_W | PTE_U | PTE_P; // the flags need to be rethink
+  *pte=V2P(mem) | flag | PTE_P ; // the flags need to be rethink
   lcr3(V2P(pgdir));
-  bfree_page(ROOTDEV,block);
 }
 void
 handle_pgfault()
@@ -79,9 +78,8 @@ handle_pgfault()
 	unsigned addr;
 	struct proc *curproc = myproc();
 
-	asm volatile ("movl %%cr2, %0 \n\t" : "=r" (addr));
-	addr &= ~0xfff;
-	map_address(curproc->pgdir, addr);
+	uint a= PGROUNDDOWN(rcr2());
+	map_address(curproc->pgdir, a);
 }
 
 
