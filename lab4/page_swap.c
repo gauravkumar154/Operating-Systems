@@ -21,6 +21,10 @@ void swap_init(){
   }
 }
 
+
+
+
+
 void swap_out(){
     // called the function find_victim , it handles to find the victim process and victim page . now the type of the victim page is pte* , but we need to convert it into char* so that we can write it on the disk
     // now we have victim process and victim page , but how do i get the address of this page in memory ?
@@ -51,10 +55,8 @@ void swap_out(){
 void
 map_address(pde_t *pgdir, uint addr)
 {
-	struct proc *curproc = myproc();
   pte_t *pte=walkpgdir(pgdir, (char*)addr, 0); // physical address of the page table entry 
   uint flag = PTE_FLAGS(*pte);
-	uint cursz= curproc->sz;
   uint block = getswappedblk(pgdir,addr);
 	char *mem=kalloc() ;    //allocate a physical page // this is the virutal address of the memory that is allocated 
   read_page_from_disk(ROOTDEV, mem, block); // mem 

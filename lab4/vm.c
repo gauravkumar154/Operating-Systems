@@ -34,7 +34,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t *
+pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
@@ -401,7 +401,7 @@ find_victim_page(pde_t *pgdir, struct proc* p)   // I am getting the virtual add
 {
 
 
-  int count_pte_present ;
+  int count_pte_present= 0;
   for (int i = 0; i < NPDENTRIES; ++i)
   {
     if (pgdir[i] & PTE_P)

@@ -79,18 +79,21 @@ myproc(void) {
 struct proc*
 find_victim(void)
 {
-  struct proc *victim;
+  struct proc *victim = 0;
   int rss = -1;
   
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == RUNNABLE)
+    if(p->state == RUNNABLE){
       if(p->rss > rss){
         rss = p->rss;
-        victim = &p;
+        victim = p;
       }
-      else if (p->rss == rss)
-        if(p->pid < victim->pid)
-          victim = &p;
+      else if (p->rss == rss){
+        if(p->pid < victim->pid){
+          victim = p;
+        }
+      }
+    }
   
   return victim; 
 }
@@ -194,14 +197,17 @@ growproc(int n)
   
   sz = curproc->sz;
   if(n > 0){
-    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0){
       curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
+    }
   } else if(n < 0){
-    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0){
       curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
+    }
   }
+  
   curproc->sz = sz;
   switchuvm(curproc);
   return 0;

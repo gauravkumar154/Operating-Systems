@@ -126,6 +126,7 @@ void            wakeup(void*);
 void            yield(void);
 void             print_rss(void);
 
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
@@ -190,13 +191,17 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-struct pte*          find_victim_page(pde_t *pgdir, struct proc* p);
+pte_t*         find_victim_page(pde_t *pgdir, struct proc* p);
 int            getswappedblk(pde_t *pgdir, uint va) ;
+pte_t * walkpgdir(pde_t *pgdir, const void *va, int alloc);
 
 
 
 //page_swap.c
 void            swap_out() ;
+void            swap_init() ;
+void            map_address(pde_t *pgdir, uint addr) ;
+void            handle_pgfault();
 
 
 // number of elements in fixed-size array

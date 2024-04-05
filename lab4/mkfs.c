@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   nblocks = FSSIZE - nmeta;
 
   sb.size = xint(FSSIZE);
-  self.swapstart = xint(2);
+  sb.swapstart = xint(2);
   sb.swapsize = xint(swapsize);
   sb.nblocks = xint(nblocks);
   sb.ninodes = xint(NINODES);
