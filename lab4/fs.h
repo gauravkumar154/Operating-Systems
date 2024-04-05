@@ -58,3 +58,10 @@ struct dirent {
   char name[DIRSIZ];
 };
 
+
+struct swap_slot{
+  uint is_free ;
+  uint page_perm ;
+  uint block_no ;
+};
+

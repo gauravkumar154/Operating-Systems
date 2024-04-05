@@ -10,15 +10,6 @@
 #include "spinlock.h"
 
 
-#define N_SWAP_SLOTS 8
-#define PGSIZE 4096
-
-struct swap_slot{
-  uint is_free ;
-  uint page_perm ;
-  uint block_no ;
-};
-
 struct swap_slot swap_slots[N_SWAP_SLOTS] ;
 
 void swap_init(){
@@ -39,9 +30,8 @@ void swap_out(){
     if(victimproc==0){
         panic("No victim process found");
     }
-    struct pde* pgdir = victimproc->pgdir ;  
-    
-    struct pte* victimpage = find_victim_page(pgdir,victimproc) ;
+    pde_t* pgdir = victimproc->pgdir ;  
+    pte_t* victimpage = find_victim_page(pgdir,victimproc) ;
     if(victimpage==0){
         panic("No victim page found");
     }
@@ -75,13 +65,9 @@ map_address(pde_t *pgdir, uint addr)
 void
 handle_pgfault()
 {
-
-	unsigned addr;
 	struct proc *curproc = myproc();
-
-	asm volatile ("movl %%cr2, %0 \n\t" : "=r" (addr));
-	addr &= ~0xfff;
-	map_address(curproc->pgdir, addr);
+	uint a = PGROUNDDOWN(rcr2());
+	map_address(curproc->pgdir, a);
 }
 
 

@@ -23,6 +23,7 @@
 int nbitmap = FSSIZE/(BSIZE*8) + 1;
 int ninodeblocks = NINODES / IPB + 1;
 int nlog = LOGSIZE;
+int swapsize = SWAPSIZE; 
 int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks;  // Number of data blocks
 
@@ -91,26 +92,30 @@ main(int argc, char *argv[])
   }
 
   // 1 fs block = 1 disk sector
-  nmeta = 2 + nlog + ninodeblocks + nbitmap;
+  nmeta = 2 + nlog + ninodeblocks + nbitmap + swapsize;
   nblocks = FSSIZE - nmeta;
 
-  // sb.size = xint(FSSIZE);
-  // sb.nblocks = xint(nblocks);
-  // sb.ninodes = xint(NINODES);
-  // sb.nlog = xint(nlog);
-  // sb.logstart = xint(2);
-  // sb.inodestart = xint(2+nlog);
-  // sb.bmapstart = xint(2+nlog+ninodeblocks);
+  sb.size = xint(FSSIZE);
+  self.swapstart = xint(2);
+  sb.swapsize = xint(swapsize);
+  sb.nblocks = xint(nblocks);
+  sb.ninodes = xint(NINODES);
+  sb.nlog = xint(nlog);
+  sb.logstart = xint(2 + swapsize);
+  sb.inodestart = xint(2 + nlog + swapsize);
+  sb.bmapstart = xint(2 + nlog + swapsize + ninodeblocks);
+  
+  
 
-  sb.swapstart = xint(2);
-  sb.swapsize = xint(68);
-  sb.size = xint(1000);
-  sb.nblocks = xint(873);
-  sb.ninodes = xint(200);
-  sb.nlog = xint(30);
-  sb.logstart = xint(70);
-  sb.inodestart = xint(100);
-  sb.bmapstart = xint(126);
+  // sb.swapstart = xint(2);
+  // sb.swapsize = xint(64);
+  // sb.size = xint(1000);
+  // sb.nblocks = xint(873);
+  // sb.ninodes = xint(200);
+  // sb.nlog = xint(30);
+  // sb.logstart = xint(70);
+  // sb.inodestart = xint(100);
+  // sb.bmapstart = xint(126);
 
   printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
          nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);

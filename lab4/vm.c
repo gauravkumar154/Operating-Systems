@@ -401,7 +401,7 @@ find_victim_page(pde_t *pgdir, struct proc* p)
   int count_pte_present ;
   for (int i = 0; i < NPDENTRIES; ++i)
   {
-    if (1)
+    if (pgdir[i] & PTE_P)
     {
       pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
       for (int j = 0; j < NPTENTRIES; ++j)
@@ -423,7 +423,7 @@ find_victim_page(pde_t *pgdir, struct proc* p)
   
   for (int i = 0; i < NPDENTRIES; ++i)
   {
-    if (1)
+    if (pgdir[i] & PTE_P)
     {
       pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
       for (int j = 0; j < NPTENTRIES; ++j)
