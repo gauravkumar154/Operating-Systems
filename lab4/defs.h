@@ -15,8 +15,8 @@ void            binit(void);
 struct buf*     bread(uint, uint);
 void            brelse(struct buf*);
 void            bwrite(struct buf*);
-void write_page_to_disk(uint dev ,char *pg , uint blk);
-void read_page_from_disk(uint dev, char *pg , uint blk ) ;
+void write_page_to_disk(char *pg , uint blk);
+void read_page_from_disk(char *pg , uint blk ) ;
 
 // console.c
 void            consoleinit(void);
@@ -191,16 +191,15 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-pte_t*         find_victim_page(pde_t *pgdir, struct proc* p);
+pte_t         find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot);
 int            getswappedblk(pde_t *pgdir, uint va) ;
-pte_t * walkpgdir(pde_t *pgdir, const void *va, int alloc);
+pte_t *        walkpgdir_copy(pde_t *pgdir, const void *va, int alloc);
 
 
 
 //page_swap.c
-void            swap_out() ;
+char*            swap_out() ;
 void            swap_init() ;
-void            map_address(pde_t *pgdir, uint addr) ;
 void            handle_pgfault();
 
 

@@ -64,7 +64,7 @@ bget(uint dev, uint blockno)
   struct buf *b;
 
   acquire(&bcache.lock);
-  cprintf("before the for loop in the bget ") ;
+  // cprintf("before the for loop in the bget ") ;
   // Is the block already cached?
   for(b = bcache.head.next; b != &bcache.head; b = b->next){
     if(b->dev == dev && b->blockno == blockno){
@@ -73,7 +73,8 @@ bget(uint dev, uint blockno)
       acquiresleep(&b->lock);
       return b;
     }
-  }cprintf("ohh no we need to return a empty block now ");
+  }
+  // cprintf("ohh no we need to return a empty block now ");
 
   // Not cached; recycle an unused buffer.
   // Even if refcnt==0, B_DIRTY indicates a buffer is in use
@@ -97,11 +98,11 @@ struct buf*
 bread(uint dev, uint blockno)
 {
   struct buf *b;
-  cprintf("here in the bread before the bget");
+  // cprintf("here in the bread before the bget");
   b = bget(dev, blockno);
   
   if((b->flags & B_VALID) == 0) {
-    cprintf("???");
+    // cprintf("???");
     iderw(b);
   }
   return b;
@@ -145,7 +146,7 @@ brelse(struct buf *b)
  * starting at blk.
  */
 void
-write_page_to_disk(uint dev, char *pg, uint blk)
+write_page_to_disk( char *pg, uint blk)
 {
   struct buf* buffer;
   int blockno=0;
@@ -159,7 +160,11 @@ write_page_to_disk(uint dev, char *pg, uint blk)
     Writing physical page to disk by dividing it into 8 pieces (4096 bytes/8 = 512 bytes = 1 block)
     As one page requires 8 disk blocks
     */
+    cprintf("memmove before\n");
+    cprintf("pg+ithPartOfPage: %x\n",pg+ithPartOfPage);
+    // cprintf("Phystop : %d\n",PHYSTOP);
     memmove(buffer->data,pg+ithPartOfPage,512);   // write 512 bytes to the block
+    cprintf("memmove after\n");
     bwrite(buffer);
     brelse(buffer);                               //release lock
     // end_op();
@@ -170,7 +175,7 @@ write_page_to_disk(uint dev, char *pg, uint blk)
  * starting at blk into pg.
  */
 void
-read_page_from_disk(uint dev, char *pg, uint blk)
+read_page_from_disk(char *pg, uint blk)
 {
   struct buf* buffer;
   int blockno=0;

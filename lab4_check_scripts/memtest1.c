@@ -19,7 +19,7 @@ mem(void)
 	uint count = 0;
 	uint total_count;
 
-	printf(1, "mem test\n");
+	// printf(1, "mem test\n");
 
 	m1 = malloc(4096);
 	if (m1 == 0)
@@ -29,21 +29,20 @@ mem(void)
 	start = m1;
 
 	while (cur < TOTAL_MEMORY) {
-		// printf(1,"%d\n",cur);
 		m2 = malloc(4096);
 		if (m2 == 0)
 			goto failed;
 		*(char**)m1 = m2;
 		((int*)m1)[2] = count++;
-		printf(1,"%d\n",sizeof(m2));
-		printf(1, "CurrCount: %d\n", ((int*)m1)[2]);
+		// printf(1,"%d\n",sizeof(int));
+		// printf(1, "CurrCount: %d\n", ((int*)m1)[2]);
 		m1 = m2;
 		cur += 4096;
 	}
 
 	((int*)m1)[2] = count;
 	total_count = count;
-	printf(1, "\n\nWhile Loop Over\n");
+	// printf(1, "\n\nWhile Loop Over\n");
 
 	count = 0;
 	m1 = start;
@@ -69,7 +68,7 @@ failed:
 int
 main(int argc, char *argv[])
 {
-	printf(1, "memtest starting\n");
+	// printf(1, "memtest starting\n");
 	mem();
 	// void *m1=0;
 	// m1 = malloc(10);

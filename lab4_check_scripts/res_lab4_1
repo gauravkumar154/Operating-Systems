@@ -1,0 +1,12 @@
+Parent alloc-ed:
+PrintingRSS
+((P)) id: 1, state: 2, rss: 0
+((P)) id: 2, state: 2, rss: 0
+((P)) id: 3, state: 4, rss: 1409024
+((P)) id: 4, state: 2, rss: 0
+PrintingRSS
+((P)) id: 1, state: 2, rss: 0
+((P)) id: 2, state: 2, rss: 0
+((P)) id: 3, state: 2, rss: 651264
+((P)) id: 4, state: 4, rss: 655360
+Memtest2 Passed!

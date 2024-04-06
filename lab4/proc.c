@@ -40,10 +40,9 @@ struct cpu*
 mycpu(void)
 {
   int apicid, i;
-  
+
   if(readeflags()&FL_IF)
     panic("mycpu called with interrupts enabled\n");
-  
   apicid = lapicid();
   // APIC IDs are not guaranteed to be contiguous. Maybe we should have
   // a reverse map, or reserve a register to store &cpus[i].
@@ -79,22 +78,29 @@ myproc(void) {
 struct proc*
 find_victim(void)
 {
+  // cprintf("Finding victim\n");
   struct proc *victim = 0;
-  int rss = -1;
   
-  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == RUNNABLE){
+  // victim->pid = 0;
+  int rss = 0;
+  
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    // cprintf("((P)) id: %d, state: %d, rss: %d\n",p->pid,p->state,p->rss);
+    // if(p->state == RUNNABLE || p->state == RUNNING){
       if(p->rss > rss){
         rss = p->rss;
         victim = p;
       }
       else if (p->rss == rss){
-        if(p->pid < victim->pid){
+        if(p->pid < victim->pid || victim->pid == 0){
+          // cprintf("here\n");
           victim = p;
         }
-      }
+      // }
     }
-  
+  }
+  // cprintf("Victim id: %d,  rss: %d\n",victim->pid,victim->rss);
+
   return victim; 
 }
 
@@ -162,7 +168,7 @@ userinit(void)
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
-  p->rss =1 ;
+  // p->rss =1 ;
   p->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
@@ -194,20 +200,20 @@ growproc(int n)
 {
   uint sz;
   struct proc *curproc = myproc();
-  
+  // cprintf("here");
   sz = curproc->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0){
-      curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
+      // curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
     }
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0){
-      curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
+      // curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
       return -1;
     }
   }
-  
+  curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
   curproc->sz = sz;
   switchuvm(curproc);
   return 0;
@@ -280,7 +286,6 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
-
   begin_op();
   iput(curproc->cwd);
   end_op();
@@ -290,7 +295,6 @@ exit(void)
 
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
-
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
@@ -376,6 +380,7 @@ void print_rss()
 void
 scheduler(void)
 {
+  
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -383,7 +388,6 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -396,7 +400,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
+      // cprintf("Running process name %s with pid %d\n",p->name,p->pid);
       swtch(&(c->scheduler), p->context);
       switchkvm();
 

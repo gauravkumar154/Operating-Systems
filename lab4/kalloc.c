@@ -104,7 +104,8 @@ kalloc(void)
 
   // if the allocator is not able to find then swap out is called 
   if((char*)r == 0){
-    swap_out();
+    // cprintf("swapping out\n ");
+    return swap_out();
   }
   return (char*)r;
 }

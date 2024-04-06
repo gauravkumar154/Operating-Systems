@@ -34,8 +34,30 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-pte_t *
+static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
+
+pte_t *
+walkpgdir_copy(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
   pte_t *pgtab;
@@ -177,6 +199,7 @@ switchuvm(struct proc *p)
   ltr(SEG_TSS << 3);
   lcr3(V2P(p->pgdir));  // switch to process's address space
   popcli();
+
 }
 
 // Load the initcode into address 0 of pgdir.
@@ -258,6 +281,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 int
 deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
+  // cprintf("deallocuvm: %d %d\n",oldsz,newsz);
   pte_t *pte;
   uint a, pa;
 
@@ -271,13 +295,17 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){
       pa = PTE_ADDR(*pte);
-      if(pa == 0)
+      if(pa == 0){
+        // cprintf("here");
         panic("kfree");
+      }
       char *v = P2V(pa);
       kfree(v);
       *pte = 0;
     }
   }
+  
+
   return newsz;
 }
 
@@ -389,29 +417,33 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 }
 
 
-//write the code for finding the victim page using the algorithm ,  we iterate through the pages of a victim process and choose a page with the PTE_P flag set and the PTE_A flag unset. The PTE_P flag indicates whether the page is present in the memory, and the PTE_A flag indicates whether the page is accessed by the process, which is set by the xv6 paging hardware (refer Ch-2 of the xv6 book).
-//pte* is the page that we want to return 
+// write the code for finding the victim page using the algorithm ,  we iterate through the pages of a victim process and choose a page with the PTE_P flag set and the PTE_A flag unset. The PTE_P flag indicates whether the page is present in the memory, and the PTE_A flag indicates whether the page is accessed by the process, which is set by the xv6 paging hardware (refer Ch-2 of the xv6 book).
+// pte* is the page that we want to return 
 // we need to iterate on the pgdir , and for each of the pde* we need to iterate on the pte* 
 // we need to check if the PTE_P flag is set and the PTE_A flag is unset 
 // if it's true then return this pte* 
 // if we didn't find any page that satisfies the condition then return NULL
 
-pte_t*
-find_victim_page(pde_t *pgdir, struct proc* p)   // I am getting the virtual address of the pgdir , and the process p 
+pte_t
+find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting the virtual address of the pgdir , and the process p 
 {
-
-
+  // cprintf("find_victim_page: %d\n",pgdir[0]);
   int count_pte_present= 0;
   for (int i = 0; i < NPDENTRIES; ++i)
   {
     if (pgdir[i] & PTE_P)
     {
       pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+      // cprintf("find_victim_page: %d\n",pt[0]);
       for (int j = 0; j < NPTENTRIES; ++j)
       {
-        if (pt[j] & PTE_P && !(pt[j] & PTE_A))
+        if ((pt[j] & PTE_P) && !(pt[j] & PTE_A))
         {
-          return &pt[j];
+          pte_t pte = pt[j];
+          pt[j] &= ((1 << 12) - 1);
+          pt[j] |= swap_slot << 12;
+          pt[j] &= ~PTE_P;  
+          return pte;
         }else if (pt[j]& PTE_P){
           count_pte_present++;
         }
@@ -443,26 +475,21 @@ find_victim_page(pde_t *pgdir, struct proc* p)   // I am getting the virtual add
       }
     }
   }
-  pte_t *pte = find_victim_page(pgdir,p);
+  pte_t pte = find_victim_page(pgdir,p,swap_slot);
   // suppose we find the victim page , we need to swap it out 
   // how 
 
   return pte ;
 }
-int
-getswappedblk(pde_t *pgdir, uint va)
-{
-  //***************xv7**************
-  pte_t *pte= walkpgdir(pgdir,(char*)va,0); // physical address of the virtual address
-  //first 20 bits contain block-id, extract them from *pte
-  int block_id= (*pte)>>12;   // the 20 value is the physical page number that stores the block id 
-  return block_id;
-}
 
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
+// int
+// getswappedblk(pde_t *pgdir, uint va)
+// {
+//   //***************xv7**************
+//   pte_t *pte= walkpgdir(pgdir,(char*)va,0); // physical address of the virtual address
+//   //first 20 bits contain block-id, extract them from *pte
+//   int block_id= (*pte)>>12;   // the 20 value is the physical page number that stores the block id 
+//   return block_id;
+// }
+
 
