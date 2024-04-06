@@ -424,7 +424,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // if it's true then return this pte* 
 // if we didn't find any page that satisfies the condition then return NULL
 
-pte_t
+pte_t*
 find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting the virtual address of the pgdir , and the process p 
 {
   // cprintf("find_victim_page: %d\n",pgdir[0]);
@@ -439,11 +439,11 @@ find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting
       {
         if ((pt[j] & PTE_P) && !(pt[j] & PTE_A))
         {
-          pte_t pte = pt[j];
-          pt[j] &= ((1 << 12) - 1);
-          pt[j] |= swap_slot << 12;
-          pt[j] &= ~PTE_P;  
-          return pte;
+          // pte_t pte = pt[j];
+          // pt[j] &= ((1 << 12) - 1);
+          // pt[j] |= swap_slot << 12;
+          // pt[j] &= ~PTE_P;  
+          return &pt[j];
         }else if (pt[j]& PTE_P){
           count_pte_present++;
         }
@@ -455,7 +455,6 @@ find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting
   // convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag 
   // 10 percent of the count_pte_present  , first 10 percent do the modification 
   int count = (int)count_pte_present/10;
-  
   for (int i = 0; i < NPDENTRIES; ++i)
   {
     if (pgdir[i] & PTE_P)
@@ -475,7 +474,7 @@ find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting
       }
     }
   }
-  pte_t pte = find_victim_page(pgdir,p,swap_slot);
+  pte_t* pte = find_victim_page(pgdir,p,swap_slot);
   // suppose we find the victim page , we need to swap it out 
   // how 
 

@@ -155,16 +155,18 @@ write_page_to_disk( char *pg, uint blk)
     // begin_op();           //for atomicity , the block must be written to the disk
     ithPartOfPage=i*512;
     blockno=blk+i;
+    // cprintf("getting buffer %d\n" , blockno);
     buffer=bget(ROOTDEV,blockno);
+
     /*
     Writing physical page to disk by dividing it into 8 pieces (4096 bytes/8 = 512 bytes = 1 block)
     As one page requires 8 disk blocks
     */
-    cprintf("memmove before\n");
-    cprintf("pg+ithPartOfPage: %x\n",pg+ithPartOfPage);
+    // cprintf("memmove before\n");
+    // cprintf("pg+ithPartOfPage: %x\n",pg+ithPartOfPage);
     // cprintf("Phystop : %d\n",PHYSTOP);
     memmove(buffer->data,pg+ithPartOfPage,512);   // write 512 bytes to the block
-    cprintf("memmove after\n");
+    // cprintf("memmove after\n");
     bwrite(buffer);
     brelse(buffer);                               //release lock
     // end_op();

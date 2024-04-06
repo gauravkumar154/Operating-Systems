@@ -43,18 +43,26 @@ char* swap_out(){
     
     for(int i=0 ; i<N_SWAP_SLOTS;i++){
         if(swap_slots[i].is_free == 1){
+          cprintf("swap slot: %d\n",i);
+            swap_slots[i].is_free = 0;
             struct proc* victimproc ;
-            victimproc = find_victim() ;
+            victimproc = find_victim();
             // cprintf("swap_out: %d\n",victimproc->pid);
             victimproc->rss--;
-            pde_t* pgdir = victimproc->pgdir ;  
-            pte_t victimpage = find_victim_page(pgdir,victimproc , i) ;           
-            char* pg = (char*)P2V(PTE_ADDR(victimpage));
+            pde_t* pgdir = victimproc->pgdir;  
+            pte_t* victimpage = find_victim_page(pgdir,victimproc , i);
+            // if((victimpage & PTE_P) != 1){
+            //   panic("bkc hori gyus");
+            // }          
+            cprintf("Address swapped out : %x\n",*victimpage);
+            char* pg = (char*)P2V(PTE_ADDR(*victimpage));
             cprintf("swap_out: %d , rss : %d\n",victimproc->pid , victimproc->rss);
             write_page_to_disk(pg,swap_slots[i].block_no);
-            cprintf("block written to disk\n");
+            *victimpage &= ((1 << 12) - 1);
+            *victimpage |= (i << 12);
+            *victimpage &= (~PTE_P);
+            // cprintf("block written to disk\n");
             swap_slots[i].page_perm = PTE_FLAGS(victimpage) ;
-            swap_slots[i].is_free = 0;
             memset(pg,0,PGSIZE);
             cprintf("swap_out done\n");
             return pg;
@@ -84,16 +92,18 @@ handle_pgfault()
   cprintf("here in handle_pgfault\n");
 	struct proc *curproc = myproc();
 	uint addr = PGROUNDDOWN(rcr2());
+  cprintf("Address not found : %x\n",addr);
   pde_t *pgdir = curproc->pgdir;
 	pte_t *pte = walkpgdir_copy(pgdir, (char*)addr, 0); // physical address of the page table entry 
-  int swap_slot_no = PTE_ADDR(*pte) >> 12;
+  int swap_slot_no = *pte >> 12;
   struct swap_slot swap_slot = swap_slots[swap_slot_no];
   uint block = swap_slot.block_no;
   uint perms = swap_slot.page_perm;
 	char *mem=kalloc() ;    //allocate a physical page // this is the virutal address of the memory that is allocated 
   read_page_from_disk(mem, block); 
   *pte=V2P(mem) | perms | PTE_P ; 
-  swap_slot.is_free = 1; 
+  swap_slots[swap_slot_no].is_free = 1;
+  cprintf("swap slot free: %d\n" , swap_slot_no); 
   curproc->rss++;
   cprintf("handle_pgfault done\n");
 }
