@@ -29,8 +29,9 @@ mem(void)
 	start = m1;
 
 	while (cur < TOTAL_MEMORY) {
-		// printf(1,"%d\n",cur);
+		printf(1,"%d\n",cur);
 		m2 = malloc(4096);
+		printf(1,"Malloc done : %d\n",sizeof(m2));
 		if (m2 == 0)
 			goto failed;
 		*(char**)m1 = m2;

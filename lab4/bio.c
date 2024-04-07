@@ -186,6 +186,7 @@ read_page_from_disk(char *pg, uint blk)
     ithPartOfPage=i*512;
     blockno=blk+i;
     buffer=bread(ROOTDEV,blockno);    //if present in buffer, returns from buffer else from disk
+    cprintf("Reading block %d\n",blockno);
     memmove(pg+ithPartOfPage, buffer->data,512);  //write to pg from buffer
     brelse(buffer);                   //release lock
   }

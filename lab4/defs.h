@@ -191,9 +191,9 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-pte_t*         find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot);
+pte_t*         find_victim_page(struct proc* p);
 int            getswappedblk(pde_t *pgdir, uint va) ;
-pte_t *        walkpgdir_copy(pde_t *pgdir, const void *va, int alloc);
+pte_t *        walkpgdir(pde_t *pgdir, const void *va, int alloc);
 
 
 

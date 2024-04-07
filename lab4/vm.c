@@ -34,30 +34,8 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t *
-walkpgdir(pde_t *pgdir, const void *va, int alloc)
-{
-  pde_t *pde;
-  pte_t *pgtab;
-
-  pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
-      return 0;
-    // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
-    // The permissions here are overly generous, but they can
-    // be further restricted by the permissions in the page table
-    // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
-  }
-  return &pgtab[PTX(va)];
-}
-
 pte_t *
-walkpgdir_copy(pde_t *pgdir, const void *va, int alloc)
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
   pte_t *pgtab;
@@ -425,61 +403,97 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // if we didn't find any page that satisfies the condition then return NULL
 
 pte_t*
-find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting the virtual address of the pgdir , and the process p 
+find_victim_page(struct proc*p)
 {
-  // cprintf("find_victim_page: %d\n",pgdir[0]);
   int count_pte_present= 0;
-  for (int i = 0; i < NPDENTRIES; ++i)
-  {
-    if (pgdir[i] & PTE_P)
+  pde_t *pgdir = p->pgdir;
+  for (uint i = 0 ; i < p->sz ; i+= PGSIZE ){
+    pte_t *pte = walkpgdir(pgdir,(char*)i,0);
+    // cprintf("find_victim_page: %x\n",pte);
+    if (pte && (*pte & PTE_P) && !(*pte & PTE_A))
     {
-      pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
-      // cprintf("find_victim_page: %d\n",pt[0]);
-      for (int j = 0; j < NPTENTRIES; ++j)
-      {
-        if ((pt[j] & PTE_P) && !(pt[j] & PTE_A))
-        {
-          // pte_t pte = pt[j];
-          // pt[j] &= ((1 << 12) - 1);
-          // pt[j] |= swap_slot << 12;
-          // pt[j] &= ~PTE_P;  
-          return &pt[j];
-        }else if (pt[j]& PTE_P){
-          count_pte_present++;
-        }
-      }
+      return pte;
+    }else if (pte && (*pte & PTE_P)){
+      count_pte_present++;
     }
   }
 
-  // if we dont find any pte* , If we fail to find such a page, then we convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag. After the update, we again try to find a victim page.
-  // convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag 
-  // 10 percent of the count_pte_present  , first 10 percent do the modification 
-  int count = (int)count_pte_present/10;
-  for (int i = 0; i < NPDENTRIES; ++i)
-  {
-    if (pgdir[i] & PTE_P)
+  int count_to_clean = (count_pte_present + 9) /10;
+  for (uint i = 0 ; i < p->sz ; i+= PGSIZE ){
+    pte_t *pte = walkpgdir(pgdir,(char*)i,0);
+    if (pte && (*pte & PTE_P) && (*pte & PTE_A))
     {
-      pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
-      for (int j = 0; j < NPTENTRIES; ++j)
-      {
-        if (pt[j] & PTE_P && pt[j] & PTE_A)
-        {
-          pt[j] &= ~PTE_A;
-          count--;
-        }
-        if (count == 0)
-        {
-          break;
-        }
-      }
+      *pte &= ~PTE_A;
+      count_to_clean--;
+    }
+    if (count_to_clean == 0)
+    {
+      break;
     }
   }
-  pte_t* pte = find_victim_page(pgdir,p,swap_slot);
-  // suppose we find the victim page , we need to swap it out 
-  // how 
 
+  pte_t* pte = find_victim_page(p);
   return pte ;
 }
+
+
+
+
+
+// pte_t*
+// find_victim_page(pde_t *pgdir, struct proc* p , int swap_slot)   // I am getting the virtual address of the pgdir , and the process p 
+// {
+//   // cprintf("find_victim_page: %d\n",pgdir[0]);
+//   int count_pte_present= 0;
+//   for (int i = 0; i < NPDENTRIES; ++i)
+//   {
+//     if (pgdir[i] & PTE_P)
+//     {
+//       pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+//       // cprintf("find_victim_page: %d\n",pt[0]);
+//       for (int j = 0; j < NPTENTRIES; ++j)
+//       {
+//         if ((pt[j] & PTE_P) && !(pt[j] & PTE_A))
+//         {
+//           // pte_t pte = pt[j];
+//           // pt[j] &= ((1 << 12) - 1);
+//           // pt[j] |= swap_slot << 12;
+//           // pt[j] &= ~PTE_P;  
+//           return &pt[j];
+//         }else if (pt[j]& PTE_P){
+//           count_pte_present++;
+//         }
+//       }
+//     }
+//   }
+
+//   // if we dont find any pte* , If we fail to find such a page, then we convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag. After the update, we again try to find a victim page.
+//   // convert 10% of accessed pages to non-accessed by unsetting the PTE_A flag 
+//   // 10 percent of the count_pte_present  , first 10 percent do the modification 
+//   int count = (int)count_pte_present/10;
+//   for (int i = 0; i < NPDENTRIES; ++i)
+//   {
+//     if (pgdir[i] & PTE_P)
+//     {
+//       pte_t *pt = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+//       for (int j = 0; j < NPTENTRIES; ++j)
+//       {
+//         if (pt[j] & PTE_P && pt[j] & PTE_A)
+//         {
+//           pt[j] &= ~PTE_A;
+//           count--;
+//         }
+//         if (count == 0)
+//         {
+//           break;
+//         }
+//       }
+//     }
+//   }
+//   pte_t* pte = find_victim_page(pgdir,p,swap_slot);
+
+//   return pte ;
+// }
 
 // int
 // getswappedblk(pde_t *pgdir, uint va)

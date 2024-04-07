@@ -87,6 +87,10 @@ find_victim(void)
   for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     // cprintf("((P)) id: %d, state: %d, rss: %d\n",p->pid,p->state,p->rss);
     // if(p->state == RUNNABLE || p->state == RUNNING){
+      if (victim == 0){
+        victim = p;
+        rss = p->rss;
+      }
       if(p->rss > rss){
         rss = p->rss;
         victim = p;

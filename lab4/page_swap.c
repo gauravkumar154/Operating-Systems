@@ -22,6 +22,7 @@ void swap_init(){
 }
 
 char* swap_out(){
+    struct proc* curproc = myproc();
     // called the function find_victim , it handles to find the victim process and victim page . now the type of the victim page is pte* , but we need to convert it into char* so that we can write it on the disk
     // now we have victim process and victim page , but how do i get the address of this page in memory ?
     
@@ -47,23 +48,23 @@ char* swap_out(){
             swap_slots[i].is_free = 0;
             struct proc* victimproc ;
             victimproc = find_victim();
-            // cprintf("swap_out: %d\n",victimproc->pid);
+            cprintf("Victim proc: %d\n",victimproc->pid);
             victimproc->rss--;
-            pde_t* pgdir = victimproc->pgdir;  
-            pte_t* victimpage = find_victim_page(pgdir,victimproc , i);
-            // if((victimpage & PTE_P) != 1){
-            //   panic("bkc hori gyus");
-            // }          
+            // pde_t* pgdir = victimproc->pgdir;  
+            // cprintf("Finding victim page\n");
+            pte_t* victimpage = find_victim_page(victimproc);
             cprintf("Address swapped out : %x\n",*victimpage);
             char* pg = (char*)P2V(PTE_ADDR(*victimpage));
             cprintf("swap_out: %d , rss : %d\n",victimproc->pid , victimproc->rss);
+            swap_slots[i].page_perm = PTE_FLAGS(*victimpage) ;
             write_page_to_disk(pg,swap_slots[i].block_no);
-            *victimpage &= ((1 << 12) - 1);
-            *victimpage |= (i << 12);
-            *victimpage &= (~PTE_P);
+            cprintf("Block written to disk\n");
+            // *victimpage = 0;
+            *victimpage = (i << 12);
+            // *victimpage &= (~PTE_P);
             // cprintf("block written to disk\n");
-            swap_slots[i].page_perm = PTE_FLAGS(victimpage) ;
-            memset(pg,0,PGSIZE);
+            // memset(pg,0,PGSIZE);
+            lcr3(V2P(curproc->pgdir));
             cprintf("swap_out done\n");
             return pg;
         }
@@ -91,17 +92,23 @@ handle_pgfault()
 {
   cprintf("here in handle_pgfault\n");
 	struct proc *curproc = myproc();
-	uint addr = PGROUNDDOWN(rcr2());
+	uint addr = rcr2();
   cprintf("Address not found : %x\n",addr);
   pde_t *pgdir = curproc->pgdir;
-	pte_t *pte = walkpgdir_copy(pgdir, (char*)addr, 0); // physical address of the page table entry 
+	pte_t *pte = walkpgdir(pgdir, (char*)addr, 0); // physical address of the page table entry 
+  cprintf("PTE before swapping in: %x\n", *pte);
   int swap_slot_no = *pte >> 12;
+  // cprintf("swap slot free before: %d\n" , swap_slot_no);
   struct swap_slot swap_slot = swap_slots[swap_slot_no];
   uint block = swap_slot.block_no;
   uint perms = swap_slot.page_perm;
 	char *mem=kalloc() ;    //allocate a physical page // this is the virutal address of the memory that is allocated 
+  cprintf("Reading block from disk: %d\n" , block);
   read_page_from_disk(mem, block); 
+  cprintf("Page read from disk\n");
   *pte=V2P(mem) | perms | PTE_P ; 
+	pte = walkpgdir(pgdir, (char*)addr, 0); // physical address of the page table entry 
+  cprintf("PTE after swapping in: %x\n", *pte);
   swap_slots[swap_slot_no].is_free = 1;
   cprintf("swap slot free: %d\n" , swap_slot_no); 
   curproc->rss++;
