@@ -140,7 +140,7 @@ found:
     return 0;
   }
   sp = p->kstack + KSTACKSIZE;
-
+  p -> rss = PGSIZE ;
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
@@ -217,7 +217,7 @@ growproc(int n)
       return -1;
     }
   }
-  curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz))/PGSIZE ;
+  curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz)) ;
   curproc->sz = sz;
   switchuvm(curproc);
   return 0;
@@ -333,6 +333,8 @@ wait(void)
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
+        // clear swap space
+        clear_swap_space(p);
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;

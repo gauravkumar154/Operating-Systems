@@ -28,7 +28,7 @@ mem(void)
 		memory[0] = (char) (65);
 	}
 	pid = fork();
-
+	printf(1, "\n ** Forked ** \n");
 	if(pid > 0) {
 		for(int j=0;j<100;++j){
 			char *memory = (char*) malloc(size); //4kb;

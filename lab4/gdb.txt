@@ -1,0 +1,8 @@
+GDB:
+b file name:file no for breakpoint
+
+c for continue
+
+bt for stack
+
+Make qemu-nox-gdb shayad

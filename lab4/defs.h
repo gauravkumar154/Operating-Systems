@@ -201,6 +201,7 @@ pte_t *        walkpgdir(pde_t *pgdir, const void *va, int alloc);
 char*            swap_out() ;
 void            swap_init() ;
 void            handle_pgfault();
+void            clear_swap_space(struct proc* p);
 
 
 // number of elements in fixed-size array
