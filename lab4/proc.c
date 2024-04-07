@@ -217,7 +217,6 @@ growproc(int n)
       return -1;
     }
   }
-  curproc->rss +=(PGROUNDUP(sz+n) - PGROUNDUP(sz)) ;
   curproc->sz = sz;
   switchuvm(curproc);
   return 0;
@@ -239,7 +238,7 @@ fork(void)
   }
 
   // Copy process state from proc.
-  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz,np)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
@@ -248,7 +247,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np->rss = curproc->rss ;
+  // np->rss = curproc->rss ;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -338,7 +337,8 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
+        p->rss -= PGSIZE ;
+        freevm(p->pgdir,p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;

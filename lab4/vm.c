@@ -125,13 +125,14 @@ setupkvm(void)
 
   if((pgdir = (pde_t*)kalloc()) == 0)
     return 0;
+  
   memset(pgdir, 0, PGSIZE);
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
     panic("PHYSTOP too high");
   for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
                 (uint)k->phys_start, k->perm) < 0) {
-      freevm(pgdir);
+      freevm(pgdir,myproc());
       return 0;
     }
   return pgdir;
@@ -234,6 +235,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
+    myproc()->rss += PGSIZE ;
     mem = kalloc(); // we get the virtual address of the newly allocated page on the physical memory , thus for the process that is currently running we need to update the rss value for the process 
     if(mem == 0){
       // if not able to find the free physical memory , then something might have been swapped out and still we need to increaes the rss 
@@ -268,6 +270,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
+    myproc()->rss -= PGSIZE;
     pte = walkpgdir(pgdir, (char*)a, 0);
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
@@ -286,18 +289,49 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   return newsz;
 }
+int
+deallocuvm_child(pde_t *pgdir, uint oldsz, uint newsz,struct proc* np)
+{
+  // cprintf("deallocuvm: %d %d\n",oldsz,newsz);
+  pte_t *pte;
+  uint a, pa;
+
+  if(newsz >= oldsz)
+    return oldsz;
+
+  a = PGROUNDUP(newsz);
+  for(; a  < oldsz; a += PGSIZE){
+    
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    if(!pte)
+      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
+    else if((*pte & PTE_P) != 0){
+      pa = PTE_ADDR(*pte);
+      if(pa == 0){
+        // cprintf("here");
+        panic("kfree");
+      }
+      char *v = P2V(pa);
+      kfree(v);
+      np->rss -= PGSIZE;
+      *pte = 0;
+    }
+  }
+  return newsz;
+}
 
 // Free a page table and all the physical memory pages
 // in the user part.
 void
-freevm(pde_t *pgdir)
+freevm(pde_t *pgdir,struct proc* np)
 {
   uint i;
 
   if(pgdir == 0)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, KERNBASE, 0);
+  deallocuvm_child(pgdir, KERNBASE, 0,np);
   for(i = 0; i < NPDENTRIES; i++){
+
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
       kfree(v);
@@ -322,7 +356,7 @@ clearpteu(pde_t *pgdir, char *uva)
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
-copyuvm(pde_t *pgdir, uint sz)
+copyuvm(pde_t *pgdir, uint sz,struct proc* np)
 {
   pde_t *d;
   pte_t *pte;
@@ -332,6 +366,7 @@ copyuvm(pde_t *pgdir, uint sz)
   if((d = setupkvm()) == 0)
     return 0;
   for(i = 0; i < sz; i += PGSIZE){
+    np->rss += PGSIZE ;
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
@@ -349,7 +384,7 @@ copyuvm(pde_t *pgdir, uint sz)
   return d;
 
 bad:
-  freevm(d);
+  freevm(d,np);
   return 0;
 }
 
